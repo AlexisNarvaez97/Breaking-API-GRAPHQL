@@ -6,7 +6,7 @@ import {
   getVote
 } from "../lib/database-operations";
 import { Datetime } from "../lib/datetime";
-import { COLLECTIONS } from "../config/constants";
+import { COLLECTIONS, CHANGE_VOTES } from '../config/constants';
 
 async function response(status: boolean, message: string, db: any) {
     return {
@@ -16,9 +16,13 @@ async function response(status: boolean, message: string, db: any) {
     }
 }
 
+async function sendNotification(pubsub: any, db: any) {
+  pubsub.publish(CHANGE_VOTES, { changeVotes: await getCharacters(db)})
+}
+
 const mutation: IResolvers = {
   Mutation: {
-    async addVote(_: any, { character }, { db }) {
+    async addVote(_: any, { character }, { db, pubsub }) {
       // Verificar si existe el personaje
 
       const selectCharacter = await getCharacter(db, character);
@@ -45,6 +49,7 @@ const mutation: IResolvers = {
         .collection(COLLECTIONS.VOTES)
         .insertOne(vote)
         .then(async () => {
+          sendNotification(pubsub, db);
           return response(true,"El personaje existe y se ha emitido el voto", db);
           // return {
           //   status: true,
@@ -61,7 +66,7 @@ const mutation: IResolvers = {
           // };
         });
     },
-    async updateVote(_: any, { id, character }, { db }) {
+    async updateVote(_: any, { id, character }, { db, pubsub }) {
       // Personaje Exista
       const selectCharacter = await getCharacter(db, character);
 
@@ -92,6 +97,7 @@ const mutation: IResolvers = {
         .collection(COLLECTIONS.VOTES)
         .updateOne({ id }, { $set: { character } })
         .then(async () => {
+          sendNotification(pubsub, db);
           return response(true,"Voto actualizado correctamente", db);
           // return {
           //   status: true,
@@ -108,7 +114,7 @@ const mutation: IResolvers = {
           // };
         });
     },
-    async deleteVote(_: any, { id }, { db }) {
+    async deleteVote(_: any, { id }, { db, pubsub }) {
 
         // si existe el voto
 
@@ -128,6 +134,7 @@ const mutation: IResolvers = {
         .collection(COLLECTIONS.VOTES)
         .deleteOne({ id })
         .then(async () => {
+          sendNotification(pubsub, db);
           return response(true,"El voto ha sido eliminado", db);
           // return {
           //   status: true,
