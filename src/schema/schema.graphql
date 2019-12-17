@@ -3,6 +3,10 @@ type Query {
     character(id: ID!): Character
 }
 
+type Subscription {
+    changeVotes: [Character!]!
+}
+
 type Mutation {
     addVote(character: ID!): ResultOperation!
     updateVote(id: ID!, character: ID!): ResultOperation!
